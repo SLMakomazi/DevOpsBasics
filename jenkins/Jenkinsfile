@@ -1,0 +1,83 @@
+pipeline {
+    // Tells Jenkins to run this workflow on any available agent executor in your WSL/Docker environment
+    agent any
+
+    environment {
+        // Defining the target container registry
+        REGISTRY = 'ghcr.io'
+        
+        // Pointing to your GitHub Container Registry username namespace
+        IMAGE_OWNER = 'slmakomazi'
+        
+        // Fetching the short Git commit hash to uniquely tag each container layer (similar to github.sha)
+        GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        
+        // Securely injecting your GitHub Container Registry token credentials managed by Jenkins
+        // Note: You must create a 'Username with password' credential in Jenkins with the ID 'ghcr-credentials'
+        GHCR_CRED = credentials('ghcr-credentials')
+    }
+
+    // Triggers: Dictates how this pipeline fires automatically
+    triggers {
+        // Polls the repository for branch pushes or pull requests (maps to 'on: push' and 'pull_request')
+        pollSCM('H/5 * * * *') 
+    }
+
+    stages {
+        stage('1. Checkout Repository') {
+            steps {
+                echo 'Cloning the project source code layers onto the Jenkins agent filesystem...'
+                checkout scm
+            }
+        }
+
+        stage('2. Authenticate with GHCR') {
+            steps {
+                echo 'Establishing an authenticated session with GitHub Container Registry...'
+                // Uses the injected credential variables securely masked by Jenkins
+                sh "echo \$GHCR_CRED_PSW | docker login ${REGISTRY} -u \$GHCR_CRED_USR --password-stdin"
+            }
+        }
+
+        stage('3. Build & Push Backend') {
+            steps {
+                echo 'Compiling and publishing the backend image layers...'
+                dir('backend') {
+                    // Compiles the Dockerfile using the directory context of './backend'
+                    sh "docker build -t ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-backend:latest -t ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-backend:${GIT_COMMIT_SHORT} -f Dockerfile ."
+                    
+                    // Pushes both tag markers directly to ghcr.io
+                    sh "docker push ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-backend:latest"
+                    sh "docker push ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-backend:${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+
+        stage('4. Build & Push Frontend') {
+            steps {
+                echo 'Compiling and publishing the multi-stage React frontend image layers...'
+                dir('frontend') {
+                    // Compiles the Dockerfile using the directory context of './frontend'
+                    sh "docker build -t ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-frontend:latest -t ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-frontend:${GIT_COMMIT_SHORT} -f Dockerfile ."
+                    
+                    // Pushes the production frontend optimized images to your registry
+                    sh "docker push ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-frontend:latest"
+                    sh "docker push ${REGISTRY}/${IMAGE_OWNER}/devopsbasics-frontend:${GIT_COMMIT_SHORT}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up authenticated runtime session tokens...'
+            sh "docker logout ${REGISTRY}"
+        }
+        success {
+            echo "Pipeline complete! Backend and Frontend container images successfully deployed to GHCR."
+        }
+        failure {
+            echo "Pipeline halted! Review stage console outputs to troubleshoot compilation or connection failures."
+        }
+    }
+}
