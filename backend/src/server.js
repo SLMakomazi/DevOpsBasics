@@ -15,6 +15,7 @@ initDatabase();
 // Prefix all user endpoints with '/api' (e.g. /api/users)
 app.use('/api', userRoutes);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Modular Backend running on http://localhost:${PORT}`);
+// Listen on 0.0.0.0 so other containers can access this backend
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Modular Backend running on port ${PORT}`);
 });

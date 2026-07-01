@@ -1,0 +1,75 @@
+# The display name of the workflow visible under the 'Actions' tab on GitHub
+name: DevOps Basics CI/CD Pipeline
+
+# Triggers: Defines what Git events cause this automation pipeline to fire up
+on:
+  push:
+  pull_request:
+    # Runs the workflow whenever a Pull Request is opened or updated against main
+    branches: [ main]
+
+# Global Environment Variables accessible by any step or job in this file
+env:
+  # The central domain for GitHub's container management service
+  REGISTRY: ghcr.io
+  # Evaluates to "your-username/your-repo-name" dynamically from GitHub's metadata context
+  IMAGE_NAME_BASE: ${{ github.repository }}
+
+jobs:
+  # Define a single execution unit named 'build-and-push'
+  build-and-push:
+    name: Build & Push Images to GHCR
+    # Specifies that GitHub should provision a fresh Ubuntu Linux VM runner to execute this job
+    runs-on: ubuntu-latest
+    
+    # Explicit security scopes granted to the temporary GITHUB_TOKEN for this specific job
+    permissions:
+      contents: read     # Necessary to let the runner download and read your codebase
+      packages: write    # Crucial permission required to publish artifacts to GHCR
+
+    steps:
+      # Step 1: Clone the repository onto the runner filesystem
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Establish an authenticated session with GHCR
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          # github.actor returns the username of the account that triggered the commit/PR
+          username: ${{ github.actor }}
+          # Secrets.GITHUB_TOKEN is automatically generated on-the-fly by GitHub for authentication
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # -----------------------------------------------------------------
+      # --- BUILD & PUSH BACKEND ---
+      # -----------------------------------------------------------------
+      # Step 3: Compile the backend Docker image and stream it to the registry
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend          # The path context where Docker looks for node files
+          file: ./backend/Dockerfile  # Precise location of the blueprint Dockerfile
+          push: true                  # Instructs the action to push the built layers to GHCR
+          tags: |
+            # Tag 1: Overwrites the static 'latest' tag for stable consumption
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}-backend:latest
+            # Tag 2: Appends the unique Git commit SHA for deterministic rollback versioning
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}-backend:${{ github.sha }}
+
+      # -----------------------------------------------------------------
+      # --- BUILD & PUSH FRONTEND ---
+      # -----------------------------------------------------------------
+      # Step 4: Compile the Vite/React frontend image and stream it to the registry
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend          # The path context containing the React source layers
+          file: ./frontend/Dockerfile  # Precise location of the frontend multi-stage blueprint
+          push: true                   # Upload the final optimized container image layers
+          tags: |
+            # Tag 1: Overwrites the rolling deployment 'latest' tag 
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}-frontend:latest
+            # Tag 2: Imprints the distinct tracking hash identifier matching the Git log
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}-frontend:${{ github.sha }}
