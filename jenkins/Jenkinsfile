@@ -14,7 +14,7 @@ pipeline {
         
         // Securely injecting your GitHub Container Registry token credentials managed by Jenkins
         // Note: You must create a 'Username with password' credential in Jenkins with the ID 'ghcr-credentials'
-        GHCR_CRED = credentials('ghcr-credentials')
+        GHCR_CRED = credentials('ghcr-credential')
     }
 
     // Triggers: Dictates how this pipeline fires automatically
