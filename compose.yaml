@@ -1,0 +1,123 @@
+# Specifies the schema version for the Docker Compose file format
+version: '3.8'
+
+# Defines the collection of isolated containers (services) we want to orchestrate
+services:
+
+  # ---------------------------------------------------------------------------
+  # 1. DATABASE SERVICE
+  # ---------------------------------------------------------------------------
+  db:
+    # Pulls the official, lightweight PostgreSQL version 16 image running on Alpine Linux from Docker Hub
+    image: postgres:16-alpine
+    
+    # Names the running container 'devops-db-container' instead of letting Docker auto-generate a random name
+    container_name: devops-db-container
+    
+    # Configuration to automatically restart the database engine if it crashes or if the Docker daemon reboots
+    restart: always
+    
+    # Sets system environment variables inside the PostgreSQL container to initialize its credentials
+    environment:
+      # Automatically reads the secure username string hidden inside your root .env file
+      POSTGRES_USER: ${GLOBAL_DB_USER}
+      # Automatically reads the secure password string hidden inside your root .env file
+      POSTGRES_PASSWORD: ${GLOBAL_DB_PASSWORD}
+      # Automatically creates the database name string hidden inside your root .env file on startup
+      POSTGRES_DB: ${GLOBAL_DB_NAME}
+    
+    # Mounts a managed persistent Docker volume directly into the internal database storage directory
+    # This prevents your saved data (like users) from disappearing when the container is stopped or deleted
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    # Maps internal container port 5432 to external host port 5432 so you can access Postgres locally
+    ports:
+      - "5432:5432"
+    
+    # Attaches this database instance to your custom virtual internal network bridge
+    networks:
+      - devops-network
+
+  # ---------------------------------------------------------------------------
+  # 2. BACKEND API SERVICE
+  # ---------------------------------------------------------------------------
+  backend:
+    # Tells Compose how to automatically build the backend container image from scratch
+    build:
+      # Sets the directory context to find files (looks inside the local ./backend folder)
+      context: ./backend
+      # Specifies the recipe file name to execute for the image build process
+      dockerfile: Dockerfile
+    
+    # Explicitly names the resulting application container 'devops-backend-container'
+    container_name: devops-backend-container
+    
+    # Maps the dynamic API port from your root .env file on your host machine directly into the container
+    ports:
+      - "${GLOBAL_PORT}:${GLOBAL_PORT}"
+    
+    # Configures runtime variables that your Node.js code reads via 'process.env.X'
+    environment:
+      # Injects the application port value defined in the secure root .env file
+      - PORT=${GLOBAL_PORT}
+      # Feeds the correct database username from your secure root secrets
+      - DB_USER=${GLOBAL_DB_USER}
+      # Feeds the correct database password from your secure root secrets
+      - DB_PASSWORD=${GLOBAL_DB_PASSWORD}
+      # Feeds the correct target database name from your secure root secrets
+      - DB_NAME=${GLOBAL_DB_NAME}
+      # CRITICAL: Points Node.js to 'db' (the service name above) instead of 'localhost' so it uses Docker DNS
+      - DB_HOST=db
+      # Sets the internal networking port to reach the containerized PostgreSQL instance
+      - DB_PORT=5432
+    
+    # Ensures the backend container boot sequence pauses until the database container ('db') is running
+    depends_on:
+      - db
+    
+    # Attaches this application API container to the same virtual communication bridge as the database
+    networks:
+      - devops-network
+
+  # ---------------------------------------------------------------------------
+  # 3. FRONTEND UI SERVICE
+  # ---------------------------------------------------------------------------
+  frontend:
+    # Tells Compose how to automatically build the frontend React/Vite container image
+    build:
+      # Sets the directory context to locate source files (looks inside the local ./frontend folder)
+      context: ./frontend
+      # Specifies the recipe file name to execute for compiling the frontend UI bundle
+      dockerfile: Dockerfile
+    
+    # Explicitly names the resulting web server container 'devops-frontend-container'
+    container_name: devops-frontend-container
+    
+    # Maps your custom port from the root .env file on your machine to Vite's default dev port (5173)
+    ports:
+      - "${GLOBAL_FRONTEND_PORT}:5173"
+    
+    # Instructs Compose to delay launching the frontend UI until the backend API server is fully running
+    depends_on:
+      - backend
+    
+    # Attaches this frontend container to the shared network so it can talk directly to the backend
+    networks:
+      - devops-network
+
+# ---------------------------------------------------------------------------
+# GLOBAL STORAGE & NETWORKING DEFINITIONS
+# ---------------------------------------------------------------------------
+
+# Declares the global persistent volumes managed by the host system's Docker daemon
+volumes:
+  # Allocates a permanent space on your host drive named 'postgres_data' to hold database files securely
+  postgres_data:
+
+# Declares the custom virtual networks to be provisioned by Docker Compose
+networks:
+  # Creates a virtual private network named 'devops-network'
+  devops-network:
+    # Uses the standard 'bridge' driver, letting all containers talk via their container/service names
+    driver: bridge
