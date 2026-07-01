@@ -1,0 +1,40 @@
+# --- Dependencies ---
+# Never commit node_modules because it is massive and can be recreated with 'npm install'
+node_modules/
+.pnp
+.pnp.js
+
+# --- Testing ---
+coverage/
+
+# --- Production Build Output ---
+# This ignores the production files generated when you run 'npm run build'
+dist/
+build/
+
+# --- Local Environment Variables ---
+# Keeps your API keys and secrets safe and off GitHub
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+eslintdebuglog*
+
+# --- IDEs and Editors ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# --- System Files ---
+.DS_Store
+Thumbs.db
