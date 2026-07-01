@@ -3,7 +3,6 @@ name: DevOps Basics CI/CD Pipeline
 
 # Triggers: Defines what Git events cause this automation pipeline to fire up
 on:
-  push:
   pull_request:
     # Runs the workflow whenever a Pull Request is opened or updated against main
     branches: [ main]
