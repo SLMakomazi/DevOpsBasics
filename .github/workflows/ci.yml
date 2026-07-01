@@ -6,6 +6,8 @@ on:
   pull_request:
     # Runs the workflow whenever a Pull Request is opened or updated against main
     branches: [main]
+  # Allows you to manually trigger the workflow from the GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
   # Define a single execution unit named 'build-and-push'
