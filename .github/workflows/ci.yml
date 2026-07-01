@@ -47,8 +47,8 @@ jobs:
           file: ./backend/Dockerfile  # Precise location of the blueprint Dockerfile
           push: true                  # Instructs the action to push the built layers to GHCR
           tags: |
-            ghcr.io/${{ github.repository_owner }}/devopsbasics-backend:latest
-            ghcr.io/${{ github.repository_owner }}/devopsbasics-backend:${{ github.sha }}
+            ghcr.io/slmakomazi/devopsbasics-backend:latest
+            ghcr.io/slmakomazi/devopsbasics-backend:${{ github.sha }}
 
       # -----------------------------------------------------------------
       # --- BUILD & PUSH FRONTEND ---
@@ -60,5 +60,5 @@ jobs:
           file: ./frontend/Dockerfile  # Precise location of the frontend multi-stage blueprint
           push: true                   # Upload the final optimized container image layers
           tags: |
-            ghcr.io/${{ github.repository_owner }}/devopsbasics-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/devopsbasics-frontend:${{ github.sha }}
+            ghcr.io/slmakomazi/devopsbasics-frontend:latest
+            ghcr.io/slmakomazi/devopsbasics-frontend:${{ github.sha }}
