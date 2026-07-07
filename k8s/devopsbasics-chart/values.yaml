@@ -113,11 +113,11 @@ resources: {}
 # Automated uptime health checking scripts confirming if your container app is alive or boot-looping
 livenessProbe:
   httpGet:
-    path: /health
+    path: /api/users
     port: http
 readinessProbe:
   httpGet:
-    path: /
+    path: /api/users
     port: http
 
 # The automatic thermostat setup. Set to 'false' so it won't force duplicate pods unexpectedly.
