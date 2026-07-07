@@ -10,7 +10,7 @@ spec:
     path: k8s/devopsbasics-chart
     # Replace this with your actual GitHub repository URL where this project is pushed
     repoURL: 'https://github.com/slmakomazi/DevOpsBasics.git'
-    targetRevision: HEAD
+    targetRevision: argocd
     helm:
       valueFiles:
         - values.yaml
