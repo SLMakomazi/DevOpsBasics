@@ -47,6 +47,9 @@ spec:
           # 2. Dynamic multi-variable binding parsing out your React container image structure
           image: "{{ .Values.global.registry }}/{{ .Values.global.owner }}/{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          env:
+            - name: VITE_API_URL
+              value: "http://devopsbasics-gitops-devopsbasics-chart-backend:5000"
           ports:
             # 3. Dynamically points container port mapping directly to targetPort (80)
             - name: http

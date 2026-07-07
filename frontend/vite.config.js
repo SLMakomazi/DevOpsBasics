@@ -5,7 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://backend:5000'
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://backend:5000',
+        changeOrigin: true,
+        secure: false,
+      }
     }
   }
 })
