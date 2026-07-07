@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devopsbasics-gitops
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Points directly to your local Helm chart folder structure
+    path: k8s/devopsbasics-chart
+    # Replace this with your actual GitHub repository URL where this project is pushed
+    repoURL: 'https://github.com/slmakomazi/DevOpsBasics.git'
+    targetRevision: HEAD
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
