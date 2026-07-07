@@ -1,16 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "devopsbasics-chart.fullname" . }}
+  # Append '-backend' to keep this resource distinct from your frontend deployment resource name
+  name: {{ include "devopsbasics-chart.fullname" . }}-backend
   labels:
     {{- include "devopsbasics-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  # Pointing to your specific backend replica setting
+  replicas: {{ .Values.backend.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
       {{- include "devopsbasics-chart.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -22,6 +26,7 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+        app.kubernetes.io/component: backend
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -33,16 +38,31 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        # Renamed container to map directly to your backend service target
+        - name: backend
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # Dynamically stitches: ghcr.io / slmakomazi / devopsbasics-backend : tag
+          image: "{{ .Values.global.registry }}/{{ .Values.global.owner }}/{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          env:
+            - name: DB_USER
+              value: "{{ .Values.database.user }}"
+            - name: DB_PASSWORD
+              value: "{{ .Values.database.password }}"
+            - name: DB_NAME
+              value: "{{ .Values.database.name }}"
+            - name: DB_PORT
+              value: "{{ .Values.database.port }}"
+            # K8s Internal Service Routing Resolution Name
+            - name: DB_HOST
+              value: "{{ include "devopsbasics-chart.fullname" . }}-db-service"
           ports:
+            # Set target container execution port based on backend service specs
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.backend.service.targetPort }}
               protocol: TCP
           {{- with .Values.livenessProbe }}
           livenessProbe:

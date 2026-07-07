@@ -1,161 +1,137 @@
-# Default values for devopsbasics-chart.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# =====================================================================
+# 1. GLOBAL REGISTRY SETTINGS
+# =====================================================================
+# These shared properties make it easy to point both components to 
+# your specific GitHub Container Registry namespace.
+global:
+  registry: ghcr.io
+  owner: slmakomazi
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
-replicaCount: 1
+# =====================================================================
+# 2. BACKEND APPLICATION SETTINGS (Spring Boot / API)
+# =====================================================================
+backend:
+  # The initial number of background pods to run
+  replicaCount: 1
+  image:
+    repository: devopsbasics-backend
+    # Jenkins will dynamically override this on the fly using: --set backend.image.tag=${GIT_COMMIT_LONG}
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    # ClusterIP makes the backend reachable internally *only* inside the cluster network
+    type: ClusterIP
+    # The permanent cluster internal port your frontend services will call
+    port: 5000
+    # The actual port your Java/Python application listens to inside its Dockerfile
+    targetPort: 5000
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-image:
-  repository: nginx
-  # This sets the pull policy for images.
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+# =====================================================================
+# 3. FRONTEND APPLICATION SETTINGS (React UI)
+# =====================================================================
+frontend:
+  # The initial number of user-facing pods to run
+  replicaCount: 1
+  image:
+    repository: devopsbasics-frontend
+    # Jenkins will dynamically override this on the fly using: --set frontend.image.tag=${GIT_COMMIT_LONG}
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    # LoadBalancer instructs your cloud provider (like AKS) to assign a real public IP address
+    type: LoadBalancer
+    # The standard web traffic entry port exposed to internet browsers
+    port: 80
+    # The internal container port where your Nginx/React frontend bundle webserver serves the files
+    targetPort: 80
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+# 4. Database Settings (PostgreSQL)
+database:
+  image: postgres:16-alpine
+  user: "postgres"
+  password: "SuperSecurePassword123" # In production, we would use a K8s Secret object
+  name: "devopsbasics"
+  port: 5432
+  storageSize: 1Gi
+# =====================================================================
+# 4. STANDARD KUBERNETES BOILERPLATE (Deactivated / Studying Framework)
+# =====================================================================
+# These configurations remain in place for you to study and experiment with 
+# once you expand your infrastructure components.
+
+# Credentials to pull from private registries (not required for public GHCR configurations)
 imagePullSecrets: []
-# This is to override the chart name.
+# Global naming overrides used by the underlying _helpers.tpl template library
 nameOverride: ""
 fullnameOverride: ""
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
-  # Specifies whether a service account should be created
+  # Dictates if a custom service account identity card should be initialized
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
   automount: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+# Placeholders for passing raw operational labels and metadata into live runtime Pods
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
+# Host machine user and group execution permissions constraints
 podSecurityContext: {}
-  # fsGroup: 2000
-
 securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
 
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
-service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
-  type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 80
-
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+# Reverse-proxy domain router mapping. Disabled for now while we use standard Services.
 ingress:
   enabled: false
   className: ""
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: chart-example.local
+    - host: devopsbasics.local
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
 
-# -- Expose the service via gateway-api HTTPRoute
-# Requires Gateway API resources and suitable controller installed within the cluster
-# (see: https://gateway-api.sigs.k8s.io/guides/)
+# Advanced Layer-7 traffic steering engine mapping (Disabled by default)
 httpRoute:
-  # HTTPRoute enabled.
   enabled: false
-  # HTTPRoute annotations.
   annotations: {}
-  # Which Gateways this Route is attached to.
   parentRefs:
   - name: gateway
     sectionName: http
-    # namespace: default
-  # Hostnames matching HTTP header.
   hostnames:
-  - chart-example.local
-  # List of rules and filters applied.
+  - devopsbasics.local
   rules:
   - matches:
     - path:
         type: PathPrefix
-        value: /headers
-  #   filters:
-  #   - type: RequestHeaderModifier
-  #     requestHeaderModifier:
-  #       set:
-  #       - name: My-Overwrite-Header
-  #         value: this-is-the-only-value
-  #       remove:
-  #       - User-Agent
-  # - matches:
-  #   - path:
-  #       type: PathPrefix
-  #       value: /echo
-  #     headers:
-  #     - name: version
-  #       value: v2
+        value: /
 
+# Resource limit boundaries protecting your underlying host cluster machine hardware node from memory leaks
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+# Automated uptime health checking scripts confirming if your container app is alive or boot-looping
 livenessProbe:
   httpGet:
-    path: /
+    path: /health
     port: http
 readinessProbe:
   httpGet:
     path: /
     port: http
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+# The automatic thermostat setup. Set to 'false' so it won't force duplicate pods unexpectedly.
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 10
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
-# Additional volumes on the output Deployment definition.
+# Persistent cluster storage disk drive mounting properties
 volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
-
-# Additional volumeMounts on the output Deployment definition.
 volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
 
+# Kubernetes cluster placement variables mapping workloads to specific underlying worker machines
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}

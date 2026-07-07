@@ -1,15 +1,22 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "devopsbasics-chart.fullname" . }}
+  # Append '-frontend' to distinguish this from your backend network infrastructure resource
+  name: {{ include "devopsbasics-chart.fullname" . }}-frontend
   labels:
     {{- include "devopsbasics-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
 spec:
-  type: {{ .Values.service.type }}
+  # Pulls 'LoadBalancer' from your frontend values to fetch a real cloud public IP
+  type: {{ .Values.frontend.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - # The public internet web port (80)
+      port: {{ .Values.frontend.service.port }}
+      # The target port matching your container bundle port (80)
+      targetPort: {{ .Values.frontend.service.targetPort }}
       protocol: TCP
       name: http
   selector:
     {{- include "devopsbasics-chart.selectorLabels" . | nindent 4 }}
+    # Crucial link: Ensures incoming web traffic only hits pods labeled as 'frontend'
+    app.kubernetes.io/component: frontend

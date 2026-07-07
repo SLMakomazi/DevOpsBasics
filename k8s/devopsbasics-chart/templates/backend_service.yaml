@@ -1,15 +1,22 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "devopsbasics-chart.fullname" . }}
+  # Append '-backend' to keep this network service distinct from your frontend service
+  name: {{ include "devopsbasics-chart.fullname" . }}-backend
   labels:
     {{- include "devopsbasics-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
 spec:
-  type: {{ .Values.service.type }}
+  # Pulls 'ClusterIP' from your backend values
+  type: {{ .Values.backend.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - # The internal cluster port other apps will use to call the backend (9090)
+      port: {{ .Values.backend.service.port }}
+      # The target port matching your container port (9090)
+      targetPort: {{ .Values.backend.service.targetPort }}
       protocol: TCP
       name: http
   selector:
     {{- include "devopsbasics-chart.selectorLabels" . | nindent 4 }}
+    # Crucial link: Tells the service to only send traffic to pods labeled as 'backend'
+    app.kubernetes.io/component: backend

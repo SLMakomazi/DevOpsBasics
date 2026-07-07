@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devopsbasics-chart.fullname" . }}-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: db
+    spec:
+      containers:
+        - name: postgres
+          image: "{{ .Values.database.image }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              value: "{{ .Values.database.user }}"
+            - name: POSTGRES_PASSWORD
+              value: "{{ .Values.database.password }}"
+            - name: POSTGRES_DB
+              value: "{{ .Values.database.name }}"
+          ports:
+            - containerPort: {{ .Values.database.port }}
+              name: dbport
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # Crucial: This name dictates the internal DNS domain your backend calls!
+  name: {{ include "devopsbasics-chart.fullname" . }}-db-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.database.port }}
+      targetPort: dbport
+  selector:
+    app.kubernetes.io/component: db
