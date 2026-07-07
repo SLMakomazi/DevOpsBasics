@@ -8,7 +8,7 @@ global:
   owner: slmakomazi
 
 # =====================================================================
-# 2. BACKEND APPLICATION SETTINGS (Spring Boot / API)
+# 2. BACKEND APPLICATION SETTINGS (Node.js API)
 # =====================================================================
 backend:
   # The initial number of background pods to run
@@ -25,6 +25,16 @@ backend:
     port: 5000
     # The actual port your Java/Python application listens to inside its Dockerfile
     targetPort: 5000
+
+  # FIXED: Health probes are now correctly nested and indented under the backend configuration block
+  livenessProbe:
+    httpGet:
+      path: /api/users
+      port: 5000
+  readinessProbe:
+    httpGet:
+      path: /api/users
+      port: 5000
 
 # =====================================================================
 # 3. FRONTEND APPLICATION SETTINGS (React UI)
@@ -45,7 +55,9 @@ frontend:
     # The internal container port where your Nginx/React frontend bundle webserver serves the files
     targetPort: 5173
 
-# 4. Database Settings (PostgreSQL)
+# =====================================================================
+# 4. DATABASE SETTINGS (PostgreSQL)
+# =====================================================================
 database:
   image: postgres:16-alpine
   user: "postgres"
@@ -53,8 +65,9 @@ database:
   name: "devopsbasics"
   port: 5432
   storageSize: 1Gi
+
 # =====================================================================
-# 4. STANDARD KUBERNETES BOILERPLATE (Deactivated / Studying Framework)
+# 5. STANDARD KUBERNETES BOILERPLATE (Deactivated / Studying Framework)
 # =====================================================================
 # These configurations remain in place for you to study and experiment with 
 # once you expand your infrastructure components.
@@ -109,16 +122,6 @@ httpRoute:
 
 # Resource limit boundaries protecting your underlying host cluster machine hardware node from memory leaks
 resources: {}
-
-# Automated uptime health checking scripts confirming if your container app is alive or boot-looping
-livenessProbe:
-  httpGet:
-    path: /api/users
-    port: http
-readinessProbe:
-  httpGet:
-    path: /api/users
-    port: http
 
 # The automatic thermostat setup. Set to 'false' so it won't force duplicate pods unexpectedly.
 autoscaling:
