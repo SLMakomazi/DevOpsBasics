@@ -49,11 +49,12 @@ frontend:
     pullPolicy: IfNotPresent
   service:
     # LoadBalancer instructs your cloud provider (like AKS) to assign a real public IP address
-    type: LoadBalancer
+    type: NodePort
     # The standard web traffic entry port exposed to internet browsers
     port: 5173
     # The internal container port where your Nginx/React frontend bundle webserver serves the files
     targetPort: 5173
+    nodePort: 30001
 
 # =====================================================================
 # 4. DATABASE SETTINGS (PostgreSQL)
