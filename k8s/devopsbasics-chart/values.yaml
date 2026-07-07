@@ -41,9 +41,9 @@ frontend:
     # LoadBalancer instructs your cloud provider (like AKS) to assign a real public IP address
     type: LoadBalancer
     # The standard web traffic entry port exposed to internet browsers
-    port: 80
+    port: 5173
     # The internal container port where your Nginx/React frontend bundle webserver serves the files
-    targetPort: 80
+    targetPort: 5173
 
 # 4. Database Settings (PostgreSQL)
 database:
