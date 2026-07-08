@@ -17,7 +17,7 @@ backend:
     repository: devopsbasics-backend
     # Jenkins will dynamically override this on the fly using: --set backend.image.tag=${GIT_COMMIT_LONG}
     tag: "latest"
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     # ClusterIP makes the backend reachable internally *only* inside the cluster network
     type: ClusterIP
@@ -46,7 +46,7 @@ frontend:
     repository: devopsbasics-frontend
     # Jenkins will dynamically override this on the fly using: --set frontend.image.tag=${GIT_COMMIT_LONG}
     tag: "latest"
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   service:
     # LoadBalancer instructs your cloud provider (like AKS) to assign a real public IP address
     type: NodePort
