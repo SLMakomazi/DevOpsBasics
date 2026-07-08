@@ -58,7 +58,7 @@ spec:
               value: "{{ .Values.database.port }}"
             # K8s Internal Service Routing Resolution Name
             - name: DB_HOST
-              value: "{{ .Release.Name }}-db-service"
+              value: "{{ .Release.Name }}-db-service.devopsbasics.svc.cluster.local"
           ports:
             # Set target container execution port based on backend service specs
             - name: http
