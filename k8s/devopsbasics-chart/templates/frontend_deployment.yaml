@@ -32,7 +32,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "devopsbasics-chart.serviceAccountName" . }}
+      serviceAccountName: {{ .Release.Name }}-sa
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
