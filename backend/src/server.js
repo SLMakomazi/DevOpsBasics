@@ -6,16 +6,21 @@ import userRoutes from './routes/userRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(express.json());
 
-// Initialize Database Table
-initDatabase();
+const startServer = async () => {
+  try {
+    await initDatabase();
 
-// Prefix all user endpoints with '/api' (e.g. /api/users)
-app.use('/api', userRoutes);
+    app.use('/api', userRoutes);
 
-// Listen on 0.0.0.0 so other containers can access this backend
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Modular Backend running on port ${PORT}`);
-});
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Modular Backend running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+startServer();
