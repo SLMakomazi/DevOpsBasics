@@ -5,7 +5,7 @@ name: DevOps Basics CI/CD Pipeline
 on:
   push:
     # Runs the workflow whenever a commit is pushed to the main branch
-    branches: [github-actions]
+    branches: [argocd]
   pull_request:
     # Runs the workflow whenever a Pull Request is opened or updated against main
     branches: [main]
