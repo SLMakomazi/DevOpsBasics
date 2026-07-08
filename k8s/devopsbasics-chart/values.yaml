@@ -29,11 +29,11 @@ backend:
   # FIXED: Health probes are now correctly nested and indented under the backend configuration block
   livenessProbe:
     httpGet:
-      path: /
+      path: /api/users
       port: 5000
   readinessProbe:
     httpGet:
-      path: /
+      path: /api/users
       port: 5000
 
 # =====================================================================
