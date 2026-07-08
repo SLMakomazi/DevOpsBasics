@@ -41,7 +41,7 @@ backend:
 # =====================================================================
 frontend:
   # The initial number of user-facing pods to run
-  replicaCount: 1
+  replicaCount: 2
   image:
     repository: devopsbasics-frontend
     # Jenkins will dynamically override this on the fly using: --set frontend.image.tag=${GIT_COMMIT_LONG}
