@@ -65,7 +65,9 @@ database:
   password: "SuperSecurePassword123" # In production, we would use a K8s Secret object
   name: "devopsbasics"
   port: 5432
-  storageSize: 1Gi
+  persistence:
+    enabled: true
+    size: 2Gi
 
 # =====================================================================
 # 5. STANDARD KUBERNETES BOILERPLATE (Deactivated / Studying Framework)
