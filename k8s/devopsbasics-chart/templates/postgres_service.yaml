@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  
+  name: {{ .Release.Name }}-db-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.database.port }}
+      targetPort: dbport
+  selector:
+    app.kubernetes.io/component: db

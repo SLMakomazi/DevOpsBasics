@@ -26,26 +26,10 @@ spec:
           ports:
             - containerPort: {{ .Values.database.port }}
               name: dbport
-
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
-
-      
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-postgres-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  
-  name: {{ .Release.Name }}-db-service
-spec:
-  type: ClusterIP
-  ports:
-    - port: {{ .Values.database.port }}
-      targetPort: dbport
-  selector:
-    app.kubernetes.io/component: db
