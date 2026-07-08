@@ -49,7 +49,7 @@ spec:
           imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
           env:
             - name: VITE_API_URL
-              value: "http://devopsbasics-gitops-devopsbasics-chart-backend:5000"
+              value: "/api"
           ports:
             # 3. Dynamically points container port mapping directly to targetPort (80)
             - name: http
