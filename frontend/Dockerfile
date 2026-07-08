@@ -19,3 +19,10 @@ EXPOSE 5173
 # Step 7: Run the Vite development server 
 # (We add --host so Vite accepts connections from outside the container)
 CMD ["npm", "run", "dev", "--", "--host"]
+
+FROM nginx:alpine
+# COPY YOUR CUSTOM CONFIG FILE HERE:
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 5173
+CMD ["nginx", "-g", "daemon off;"]
