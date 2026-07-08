@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     path: k8s/devopsbasics-chart
-    repoURL: 'https://github.com'
+    repoURL: 'https://github.com/slmakomazi/DevOpsBasics.git'
     targetRevision: argocd
     helm:
       releaseName: devops          # 👈 1. Fix: Forces short resource names like "devops-frontend"

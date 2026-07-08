@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "devopsbasics-chart.fullname" . }}
+  name: {{ .Release.Name }}
   labels:
     {{- include "devopsbasics-chart.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}

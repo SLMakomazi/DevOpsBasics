@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   # Append '-backend' to keep this resource distinct from your frontend deployment resource name
-  name: {{ include "devopsbasics-chart.fullname" . }}-backend
+  name: {{ .Release.Name }}-backend
   labels:
     {{- include "devopsbasics-chart.labels" . | nindent 4 }}
     app.kubernetes.io/component: backend
@@ -58,7 +58,7 @@ spec:
               value: "{{ .Values.database.port }}"
             # K8s Internal Service Routing Resolution Name
             - name: DB_HOST
-              value: "{{ include "devopsbasics-chart.fullname" . }}-db-service"
+              value: "{{ .Release.Name }}-db-service"
           ports:
             # Set target container execution port based on backend service specs
             - name: http

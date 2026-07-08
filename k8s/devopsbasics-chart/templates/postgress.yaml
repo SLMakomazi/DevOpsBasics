@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "devopsbasics-chart.fullname" . }}-db
+  name: {{ .Release.Name }}-db
 spec:
   replicas: 1
   selector:
@@ -31,7 +31,7 @@ apiVersion: v1
 kind: Service
 metadata:
   # Crucial: This name dictates the internal DNS domain your backend calls!
-  name: {{ include "devopsbasics-chart.fullname" . }}-db-service
+  name: {{ .Release.Name }}-db-service
 spec:
   type: ClusterIP
   ports:

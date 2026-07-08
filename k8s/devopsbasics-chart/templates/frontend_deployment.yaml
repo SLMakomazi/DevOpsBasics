@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   # Keeps your frontend separate from your backend deployment object
-  name: {{ include "devopsbasics-chart.fullname" . }}-frontend
+  name: {{ .Release.Name }}-frontend
   labels:
     {{- include "devopsbasics-chart.labels" . | nindent 4 }}
     app.kubernetes.io/component: frontend
