@@ -1,24 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: devopsbasics
+  name: devops-app
   namespace: argocd
 spec:
   project: default
   source:
-    # Points directly to your local Helm chart folder structure
     path: k8s/devopsbasics-chart
-    # Replace this with your actual GitHub repository URL where this project is pushed
-    repoURL: 'https://github.com/slmakomazi/DevOpsBasics.git'
+    repoURL: 'https://github.com'
     targetRevision: argocd
     helm:
+      releaseName: devops          # 👈 1. Fix: Forces short resource names like "devops-frontend"
       valueFiles:
         - values.yaml
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: default
-  
+    namespace: devopsbasics        # 👈 2. Fix: Changes the destination deployment namespace
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true       # 👈 3. Fix: Auto-creates the "devopsbasics" namespace for you
