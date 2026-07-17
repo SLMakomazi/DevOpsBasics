@@ -4,21 +4,29 @@
   become: true
 
   tasks:
-    - name: Download system prerequisites
+    - name: Download system prerequisites and Nginx
       apt:
         name: [apt-transport-https, ca-certificates, curl, software-properties-common, gnupg, nginx]
         state: present
         update_cache: yes
 
-    - name: Download official Docker GPG key
-      apt_key:
-        url: https://docker.com
-        state: present
+    - name: Create directory for Docker keyrings
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
 
-    - name: Add Docker software repository map
+    - name: Download official Docker GPG key (Modern Method)
+      get_url:
+        url: https://docker.com
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker software repository map (Modern Method)
       apt_repository:
-        repo: deb [arch=amd64] https://docker.com {{ ansible_distribution_release }} stable
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://docker.com {{ ansible_distribution_release }} stable"
         state: present
+        filename: docker
 
     - name: Install core Docker and Docker Compose
       apt:

@@ -88,11 +88,16 @@ jobs:
           echo "server_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
       - name: Step 2 - Set Up Ansible Environment Engine
+        env:
+          LIVE_IP: ${{ steps.ec2.outputs.server_ip }}
         run: |
           sudo apt update && sudo apt install -y ansible
           echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > ansible/id_rsa
           chmod 600 ansible/id_rsa
-          sed -i "s/TARGET_IP/${{ steps.ec2.outputs.server_ip }}/g" ansible/hosts.ini
+          # Replaces TARGET_IP inside hosts.ini using a safe environment string
+          sed -i "s/TARGET_IP/$LIVE_IP/g" ansible/hosts.ini
+          echo "Verifying hosts.ini replacement output:"
+          cat ansible/hosts.ini
 
       - name: Step 3 - Run Ansible Playbook to Configure the Server
         run: |
