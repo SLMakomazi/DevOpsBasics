@@ -94,14 +94,17 @@ jobs:
           sudo apt update && sudo apt install -y ansible
           echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > ansible/id_rsa
           chmod 600 ansible/id_rsa
-          # Replaces TARGET_IP inside hosts.ini using a safe environment string
+          
           sed -i "s/TARGET_IP/$LIVE_IP/g" ansible/hosts.ini
           echo "Verifying hosts.ini replacement output:"
           cat ansible/hosts.ini
 
+          echo "Giving the instance 15 seconds to fully initialize SSH..."
+          sleep 15
+
       - name: Step 3 - Run Ansible Playbook to Configure the Server
         run: |
-          cd ansible
+        
           ansible-playbook -i hosts.ini playbook.yml
 
       - name: Step 4 - Connect and Deploy React & Node Application Containers
