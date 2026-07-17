@@ -4,6 +4,12 @@
   become: true
 
   tasks:
+    # This step wipes out the broken configuration from previous runs so apt can breathe again
+    - name: Purge any legacy broken Docker sources files
+      file:
+        path: /etc/apt/sources.list.d/docker.sources
+        state: absent
+
     - name: Download system prerequisites and Nginx
       apt:
         name: [apt-transport-https, ca-certificates, curl, software-properties-common, gnupg, nginx]
