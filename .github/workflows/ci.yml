@@ -73,7 +73,7 @@ jobs:
         id: ec2
         run: |
           INSTANCE_INFO=$(aws ec2 run-instances \
-            --image-id $(aws ssm get-parameters --names "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id" --query "Parameters.Value" --output text) \
+            --image-id ami-052355af2a014bd2c \
             --count 1 \
             --instance-type t3.micro \
             --key-name my-new-ansible-key \
