@@ -28,6 +28,7 @@
         types: [deb]
         uris: https://download.docker.com/linux/ubuntu
         suites: "{{ ansible_facts['distribution_release'] }}"
+        components: [stable]
         architectures: [amd64]
         signed_by: /etc/apt/keyrings/docker.asc
         state: present
