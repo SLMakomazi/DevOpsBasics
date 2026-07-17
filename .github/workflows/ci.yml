@@ -5,17 +5,13 @@ name: DevOps Basics CI/CD Pipeline
 on:
   push:
     # Runs the workflow whenever a commit is pushed to the main branch
-    branches: [argocd]
-  pull_request:
-    # Runs the workflow whenever a Pull Request is opened or updated against main
-    branches: [main]
-  # Allows you to manually trigger the workflow from the GitHub Actions tab
+    branches: [ argocd ]
   workflow_dispatch:
 
 jobs:
-  # Define a single execution unit named 'build-and-push'
-  build-and-push:
-    name: Build & Push Images to GHCR
+  # Define a single execution unit named 'build-and-deploy'
+  build-and-deploy:
+    name: Compile Images and Deploy to AWS
     # Specifies that GitHub should provision a fresh Ubuntu Linux VM runner to execute this job
     runs-on: ubuntu-latest
     
@@ -62,3 +58,57 @@ jobs:
           tags: |
             ghcr.io/slmakomazi/devopsbasics-frontend:latest
             ghcr.io/slmakomazi/devopsbasics-frontend:${{ github.sha }}
+
+      # -----------------------------------------------------------------
+      # --- AWS PROVISIONING & INFRASTRUCTURE AUTOMATION ---
+      # -----------------------------------------------------------------
+      - name: Set Up and Link AWS CLI Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Step 1 - Provision Fresh Free-Tier EC2 Instance
+        id: ec2
+        run: |
+          INSTANCE_INFO=$(aws ec2 run-instances \
+            --image-id $(aws ssm get-parameters --names "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id" --query "Parameters.Value" --output text) \
+            --count 1 \
+            --instance-type t3.micro \
+            --key-name my-new-ansible-key \
+            --security-group-ids sg-075261d95e3ba9715 \
+            --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=autospares-prod}]' \
+            --query "Instances.InstanceId" --output text)
+          
+          echo "Waiting for instance to initialize..."
+          aws ec2 wait instance-running --instance-ids $INSTANCE_INFO
+          
+          PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_INFO --query "Reservations.Instances.PublicIpAddress" --output text)
+          echo "server_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+      - name: Step 2 - Set Up Ansible Environment Engine
+        run: |
+          sudo apt update && sudo apt install -y ansible
+          echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > ansible/id_rsa
+          chmod 600 ansible/id_rsa
+          sed -i "s/TARGET_IP/${{ steps.ec2.outputs.server_ip }}/g" ansible/hosts.ini
+
+      - name: Step 3 - Run Ansible Playbook to Configure the Server
+        run: |
+          cd ansible
+          ansible-playbook -i hosts.ini playbook.yml
+
+      - name: Step 4 - Connect and Deploy React & Node Application Containers
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ steps.ec2.outputs.server_ip }}
+          username: ubuntu
+          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          script: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/slmakomazi/devopsbasics-frontend:latest || true
+            docker pull ghcr.io/slmakomazi/devopsbasics-backend:latest || true
+            docker stop $(docker ps -a -q) || true
+            docker run -d --restart always -p 5000:5000 ghcr.io/slmakomazi/devopsbasics-backend:latest
+            docker run -d --restart always -p 3000:5173 -e BACKEND_SERVICE_URL="http://127.0.0" ghcr.io/slmakomazi/devopsbasics-frontend:latest

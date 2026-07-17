@@ -8,7 +8,8 @@ RUN npm run build
 
 # Stage 2: Serve static assets using Nginx
 FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the template file into the official Nginx template directory
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 5173
 CMD ["nginx", "-g", "daemon off;"]

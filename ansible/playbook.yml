@@ -1,0 +1,59 @@
+---
+- name: Prepare Clean AWS Server for Docker App
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Download system prerequisites
+      apt:
+        name: [apt-transport-https, ca-certificates, curl, software-properties-common, gnupg, nginx]
+        state: present
+        update_cache: yes
+
+    - name: Download official Docker GPG key
+      apt_key:
+        url: https://docker.com
+        state: present
+
+    - name: Add Docker software repository map
+      apt_repository:
+        repo: deb [arch=amd64] https://docker.com {{ ansible_distribution_release }} stable
+        state: present
+
+    - name: Install core Docker and Docker Compose
+      apt:
+        name: [docker-ce, docker-ce-cli, containerd.io, docker-compose-plugin]
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker engine is active
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Configure Nginx Free Load Balancer routing traffic
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              location / {
+                  proxy_pass http://127.0.0.1:3000;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+              }
+
+              location /api/ {
+                  proxy_pass http://127.0.0;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+              }
+          }
+
+    - name: Reload Nginx configurations to go live
+      service:
+        name: nginx
+        state: reloaded
