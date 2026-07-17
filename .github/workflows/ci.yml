@@ -69,22 +69,52 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Step 1 - Provision Fresh Free-Tier EC2 Instance
+      - name: Step 1 - Find Existing or Provision Fresh EC2 Instance
         id: ec2
         run: |
-          INSTANCE_INFO=$(aws ec2 run-instances \
-            --image-id ami-052355af2a014bd2c \
-            --count 1 \
-            --instance-type t3.micro \
-            --key-name my-new-ansible-key \
-            --security-group-ids sg-0e3ac73508405243f \
-            --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=autospares-prod}]' \
-            --query "Instances[0].InstanceId" --output text)
+          echo "Checking for an existing running instance named devopsbasic-prod-ec2..."
           
-          echo "Waiting for instance to initialize..."
-          aws ec2 wait instance-running --instance-ids $INSTANCE_INFO
-          
-          PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_INFO --query "Reservations.Instances.PublicIpAddress" --output text)
+          # Try to locate a running instance with the updated tag name
+          EXISTING_INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Value=devopsbasic-prod-ec2" "Name=instance-state-name,Value=running" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+
+          if [ "$EXISTING_INSTANCE_ID" != "None" ] && [ -n "$EXISTING_INSTANCE_ID" ]; then
+            echo "Found existing running instance: $EXISTING_INSTANCE_ID"
+            INSTANCE_ID=$EXISTING_INSTANCE_ID
+          else
+            echo "No running instance found. Provisioning a fresh one..."
+            INSTANCE_ID=$(aws ec2 run-instances \
+              --image-id ami-052355af2a014bd2c \
+              --count 1 \
+              --instance-type t3.micro \
+              --key-name my-new-ansible-key \
+              --security-group-ids sg-0e3ac73508405243f \
+              --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=devopsbasic-prod-ec2}]' \
+              --query "Instances[0].InstanceId" --output text)
+            
+            echo "Waiting for fresh instance to switch to running state..."
+            aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+          fi
+
+          # Safe lookup loop to ensure AWS maps and exposes the public IP
+          PUBLIC_IP="None"
+          for i in {1..6}; do
+            PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations.Instances.PublicIpAddress" --output text)
+            if [ "$PUBLIC_IP" != "None" ] && [ -n "$PUBLIC_IP" ]; then
+              break
+            fi
+            echo "Waiting for public IP assignment..."
+            sleep 5
+          done
+
+          if [ "$PUBLIC_IP" = "None" ] || [ -z "$PUBLIC_IP" ]; then
+            echo "Error: Target EC2 instance failed to expose a public IP configuration address."
+            exit 1
+          fi
+
+          echo "Target server IP resolved to: $PUBLIC_IP"
           echo "server_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
       - name: Step 2 - Set Up Ansible Environment Engine
@@ -95,16 +125,17 @@ jobs:
           echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > ansible/id_rsa
           chmod 600 ansible/id_rsa
           
+          # Injects the dynamic IP string inside your configuration file context
           sed -i "s/TARGET_IP/$LIVE_IP/g" ansible/hosts.ini
           echo "Verifying hosts.ini replacement output:"
           cat ansible/hosts.ini
 
-          echo "Giving the instance 15 seconds to fully initialize SSH..."
+          echo "Giving the instance 15 seconds to fully initialize SSH daemon layer..."
           sleep 15
 
       - name: Step 3 - Run Ansible Playbook to Configure the Server
         run: |
-        
+          cd ansible
           ansible-playbook -i hosts.ini playbook.yml
 
       - name: Step 4 - Connect and Deploy React & Node Application Containers
