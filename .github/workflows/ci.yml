@@ -77,7 +77,7 @@ jobs:
             --count 1 \
             --instance-type t3.micro \
             --key-name my-new-ansible-key \
-            --security-group-ids sg-075261d95e3ba9715 \
+            --security-group-ids sg-0e3ac73508405243f \
             --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=autospares-prod}]' \
             --query "Instances.InstanceId" --output text)
           
