@@ -79,7 +79,7 @@ jobs:
             --key-name my-new-ansible-key \
             --security-group-ids sg-0e3ac73508405243f \
             --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=autospares-prod}]' \
-            --query "Instances.InstanceId" --output text)
+            --query "Instances[0].InstanceId" --output text)
           
           echo "Waiting for instance to initialize..."
           aws ec2 wait instance-running --instance-ids $INSTANCE_INFO
