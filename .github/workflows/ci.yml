@@ -99,39 +99,26 @@ jobs:
           fi
 
           # Safe lookup loop to ensure AWS maps and exposes the public IP
-          PUBLIC_IP="None"
+          # Upgraded lookup loop that handles empty string outputs from AWS CLI smoothly
+          PUBLIC_IP=""
           for i in {1..20}; do
             PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations.Instances.PublicIpAddress" --output text)
-            if [ "$PUBLIC_IP" != "None" ] && [ -n "$PUBLIC_IP" ]; then
+            
+            # This covers both AWS CLI "None" and completely blank/empty string values
+            if [ -n "$PUBLIC_IP" ] && [ "$PUBLIC_IP" != "None" ] && [ "$PUBLIC_IP" != "" ]; then
               break
             fi
-            echo "Waiting for public IP assignment..."
+            echo "Attempt $i: Public IP metadata value is empty. Retrying..."
             sleep 5
           done
 
-          if [ "$PUBLIC_IP" = "None" ] || [ -z "$PUBLIC_IP" ]; then
+          if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" = "None" ] || [ "$PUBLIC_IP" = "" ]; then
             echo "Error: Target EC2 instance failed to expose a public IP configuration address."
             exit 1
           fi
 
           echo "Target server IP resolved to: $PUBLIC_IP"
           echo "server_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-
-      - name: Step 2 - Set Up Ansible Environment Engine
-        env:
-          LIVE_IP: ${{ steps.ec2.outputs.server_ip }}
-        run: |
-          sudo apt update && sudo apt install -y ansible
-          echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > ansible/id_rsa
-          chmod 600 ansible/id_rsa
-          
-          # Injects the dynamic IP string inside your configuration file context
-          sed -i "s/TARGET_IP/$LIVE_IP/g" ansible/hosts.ini
-          echo "Verifying hosts.ini replacement output:"
-          cat ansible/hosts.ini
-
-          echo "Giving the instance 15 seconds to fully initialize SSH daemon layer..."
-          sleep 15
 
       - name: Step 3 - Run Ansible Playbook to Configure the Server
         run: |
