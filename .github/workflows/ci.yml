@@ -74,9 +74,9 @@ jobs:
         run: |
           echo "Checking for an existing running instance named devopsbasic-prod-ec2..."
           
-          # Try to locate a running instance with the updated tag name
+          # AWS CLI filters require 'Values' as an array format, not 'Value'
           EXISTING_INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Value=devopsbasic-prod-ec2" "Name=instance-state-name,Value=running" \
+            --filters "Name=tag:Name,Values=devopsbasic-prod-ec2" "Name=instance-state-name,Values=running" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
 
