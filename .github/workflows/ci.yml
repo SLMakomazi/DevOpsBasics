@@ -139,9 +139,21 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/slmakomazi/devopsbasics-frontend:latest || true
-            docker pull ghcr.io/slmakomazi/devopsbasics-backend:latest || true
-            docker stop $(docker ps -a -q) || true
-            docker run -d --restart always -p 5000:5000 ghcr.io/slmakomazi/devopsbasics-backend:latest
-            docker run -d --restart always -p 3000:5173 -e BACKEND_SERVICE_URL="http://127.0.0.1:5000" ghcr.io/slmakomazi/devopsbasics-frontend:latest
+            # Force the terminal session to run inside the docker group context
+            sg docker -c "
+              echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+              
+              docker pull ghcr.io/slmakomazi/devopsbasics-frontend:latest || true
+              docker pull ghcr.io/slmakomazi/devopsbasics-backend:latest || true
+              
+              # Gracefully stop running containers if any exist
+              if [ \$(docker ps -q | wc -l) -gt 0 ]; then
+                docker stop \$(docker ps -q)
+              fi
+              
+              # Prune dangling containers to save space
+              docker system prune -f
+              
+              docker run -d --restart always -p 5000:5000 ghcr.io/slmakomazi/devopsbasics-backend:latest
+              docker run -d --restart always -p 3000:5173 -e BACKEND_SERVICE_URL='http://127.0.0.1:5000' ghcr.io/slmakomazi/devopsbasics-frontend:latest
+            "

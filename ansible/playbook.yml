@@ -35,7 +35,6 @@
         suites: "{{ ansible_facts['distribution_release'] }}"
         components: [stable]
         architectures: [amd64]
-        # Embedding the actual key content directly guarantees apt reads it perfectly
         signed_by: "{{ docker_gpg_key.content }}"
         state: present
 
@@ -50,6 +49,13 @@
         name: docker
         state: started
         enabled: yes
+
+    # --- ADDED THIS TASK TO FIX PERMISSION DENIED ---
+    - name: Add ubuntu user to the docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
 
     - name: Configure Nginx Free Load Balancer routing traffic
       copy:
