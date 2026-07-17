@@ -18,15 +18,19 @@
 
     - name: Download official Docker GPG key (Modern Method)
       get_url:
-        url: https://docker.com
+        url: https://download.docker.com/linux/ubuntu/gpg
         dest: /etc/apt/keyrings/docker.asc
         mode: '0644'
 
     - name: Add Docker software repository map (Modern Method)
-      apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://docker.com {{ ansible_distribution_release }} stable"
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: [deb]
+        uris: https://download.docker.com/linux/ubuntu
+        suites: "{{ ansible_facts['distribution_release'] }}"
+        architectures: [amd64]
+        signed_by: /etc/apt/keyrings/docker.asc
         state: present
-        filename: docker
 
     - name: Install core Docker and Docker Compose
       apt:
@@ -55,7 +59,7 @@
               }
 
               location /api/ {
-                  proxy_pass http://127.0.0;
+                  proxy_pass http://127.0.0.1:5000;
                   proxy_set_header Host $host;
                   proxy_set_header X-Real-IP $remote_addr;
               }
